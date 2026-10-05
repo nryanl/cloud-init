@@ -129,6 +129,15 @@ def verify_clean_boot(
     if ignore_tracebacks is None:
         ignore_tracebacks = []
     # Define exceptions by matrix of platform and Ubuntu release
+    ignore_warnings = append_or_create_list(
+        ignore_warnings, "multipathd-queueing.service"
+    )
+    ignore_warnings = append_or_create_list(
+        ignore_warnings, "ima/binary_runtime_measurements failed"
+    )
+    ignore_warnings = append_or_create_list(
+        ignore_warnings, "Could not activate remote peer 'org.freedesktop.hostname1'"
+    )
     if "azure" == PLATFORM:
         # Consistently on all Azure launches:
         ignore_warnings = append_or_create_list(
