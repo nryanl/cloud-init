@@ -80,6 +80,8 @@ def handle(name: str, cfg: Config, cloud: Cloud, args: list) -> None:
         cloud.distro.create_group(name, members)
 
     for user, config in users.items():
+        # LOG.info("Processing user '%s'.", user)
+        LOG.info("User '%s' config: %s.", user, config)
 
         no_home = [key for key in NO_HOME if config.get(key)]
         need_home = [key for key in NEED_HOME if config.get(key)]
