@@ -167,7 +167,7 @@ You can control the ``disk_setup`` in 2 ways:
 1. Through the datasource config, you can change the 'alias' of ``ephemeral0``
    to reference another device. The default is:
 
-   .. code-block:: yaml
+   .. code-block::
 
       'disk_aliases': {'ephemeral0': '/dev/vdb'}
 

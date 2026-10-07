@@ -45,7 +45,7 @@ separately from boot. This command is:
 
 Example output:
 
-.. code-block:: text
+.. code-block::
 
    ...
    Generating public/private ed25519 key pair

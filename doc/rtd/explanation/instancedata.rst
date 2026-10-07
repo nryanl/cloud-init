@@ -78,7 +78,7 @@ text that occur if a variable does not exist.
 Example: Cloud config with ``instance-data``
 --------------------------------------------
 
-.. code-block:: text
+.. code-block:: yaml
 
    ## template: jinja
    #cloud-config

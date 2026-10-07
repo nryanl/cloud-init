@@ -53,7 +53,7 @@ its time.
 
 Example output:
 
-.. code-block:: text
+.. code-block::
 
     -- Boot Record 01 --
         00.80300s (init-network/config-growpart)
@@ -132,7 +132,7 @@ The following is an abbreviated example of the :command:`show` subcommand:
 
 Example output:
 
-.. code-block:: text
+.. code-block:: shell-session
 
     -- Boot Record 01 --
     The total time elapsed since completing an event is printed after the "@" character.
@@ -187,11 +187,7 @@ the list is a boot entry.
 
 Example output:
 
-.. :force: specified to allow ellipsis interjection
-           without breaking syntax highlighting
-.. rstcheck: ignore-next-code-block
-.. code-block:: json
-    :force:
+.. code-block::
 
     [
     {
@@ -294,7 +290,7 @@ issues related to ``cloud-init`` startup, and tracking regression.
 
 Example output:
 
-.. code-block:: text
+.. code-block::
 
     -- Most Recent Boot Record --
         Kernel Started at: 2019-08-29 01:35:37.753790
@@ -326,7 +322,7 @@ following command will gather the ``UserspaceTimestamp``:
 
 Example output:
 
-.. code-block:: text
+.. code-block::
 
    UserspaceTimestampMonotonic=989279
 
@@ -341,7 +337,7 @@ Running the following command will gather the ``InactiveExitTimestamp``:
 
 Example output:
 
-.. code-block:: text
+.. code-block::
 
    InactiveExitTimestampMonotonic=4493126
 

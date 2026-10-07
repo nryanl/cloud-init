@@ -154,7 +154,7 @@ Set the kernel command line to configure
 
 Example using Ubuntu + GRUB2:
 
-.. code-block:: shell-session
+.. code-block::
 
     $ echo 'ds=openstack' >> /etc/default/grub
     $ grub-mkconfig -o /boot/efi/EFI/ubuntu/grub.cfg

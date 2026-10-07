@@ -53,7 +53,7 @@ Cloud-init did not run
 
 3. Check the status of the services
 
-   .. code-block:: shell-session
+   .. code-block::
 
       systemctl status cloud-init-local.service cloud-init-network.service\
          cloud-config.service cloud-final.service
@@ -124,13 +124,13 @@ To start debugging
 
 1. Check ``dmesg`` for errors:
 
-   .. code-block:: shell-session
+   .. code-block::
 
       dmesg -T | grep -i -e warning -e error -e fatal -e exception
 
 2. Investigate other systemd services that failed
 
-   .. code-block:: shell-session
+   .. code-block::
 
       systemctl --failed
 
@@ -144,7 +144,7 @@ To start debugging
 
 4. Inspect running services :ref:`boot stage<boot_stages>`:
 
-   .. code-block:: shell-session
+   .. code-block::
 
       $ systemctl list-jobs --after
       JOB UNIT                                             TYPE  STATE
@@ -169,7 +169,7 @@ To start debugging
    Any running process that was spawned by cloud-init may be blocking
    cloud-init from continuing.
 
-   .. code-block:: shell-session
+   .. code-block::
 
       pstree <PID>
 

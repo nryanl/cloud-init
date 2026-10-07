@@ -6,8 +6,6 @@ implementation details which are subject to change.
 
 -----
 
-.. rstcheck: silence "Document may not end with transition" warning
-
 .. toctree::
    :maxdepth: 1
 
