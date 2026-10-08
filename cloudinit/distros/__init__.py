@@ -849,7 +849,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
         groups: List[str],
         create_groups: Optional[bool] = True,
         **kwargs,
-    ):
+    ) -> None:
         """
         Creates or partially updates the ``name`` user in the system.
 
@@ -872,12 +872,15 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
 
         # Add a snap user, if requested
         if "snapuser" in kwargs:
+            LOG.error("DEBUG: create_user: %s has 'snapuser' in kwargs, calling add_snap_user", name)
             return self.add_snap_user(name, **kwargs)
 
         pre_existing_user = util.is_user(name)
         if pre_existing_user:
+            LOG.error("DEBUG: create_user: user '%s' already exists in the system", name)
             LOG.info("Skipping '%s' user creation: user already exists.", name)
         else:
+            LOG.error("DEBUG: create_user: user '%s' does not exist, creating with groups=%s", name, groups)
             self.add_user(
                 name, groups=groups, create_groups=create_groups, **kwargs
             )
@@ -892,8 +895,10 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
             password_key = "plain_text_passwd"
             if kwargs["plain_text_passwd"]:
                 # Set password if plain-text password provided and non-empty
+                LOG.error("DEBUG: create_user: Setting plain text password for %s", name)
                 self.set_passwd(name, kwargs["plain_text_passwd"])
             else:
+                LOG.error("DEBUG: create_user: Blank plain text password specified for %s", name)
                 ud_blank_password_specified = True
 
         if "hashed_passwd" in kwargs:
@@ -901,8 +906,10 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
             password_key = "hashed_passwd"
             if kwargs["hashed_passwd"]:
                 # Set password if hashed password is provided and non-empty
+                LOG.error("DEBUG: create_user: Setting hashed password for %s", name)
                 self.set_passwd(name, kwargs["hashed_passwd"], hashed=True)
             else:
+                LOG.error("DEBUG: create_user: Blank hashed password specified for %s", name)
                 ud_blank_password_specified = True
 
         if pre_existing_user:
@@ -911,6 +918,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                     password_key = "passwd"
                     # Only "plain_text_passwd" and "hashed_passwd"
                     # are valid for an existing user.
+                    LOG.error("DEBUG: create_user: 'passwd' in user-data ignored for existing user %s", name)
                     log_with_downgradable_level(
                         logger=LOG,
                         version="24.3",
@@ -926,18 +934,24 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 has_existing_password = not (
                     self._shadow_file_has_empty_user_password(name)
                 )
+                LOG.error("DEBUG: create_user: pre_existing_user %s has_existing_password=%s", name, has_existing_password)
         else:
             if "passwd" in kwargs:
                 ud_password_specified = True
                 password_key = "passwd"
                 if not kwargs["passwd"]:
+                    LOG.error("DEBUG: create_user: Blank 'passwd' specified for new user %s", name)
                     ud_blank_password_specified = True
+                else:
+                    LOG.error("DEBUG: create_user: Non-blank 'passwd' specified for new user %s", name)
 
         # Default locking down the account. 'lock_passwd' defaults to True.
         # Lock account unless lock_password is False in which case unlock
         # account as long as a password (blank or otherwise) was specified.
-        if kwargs.get("lock_passwd", True):
-            LOG.error("DEBUGname: %s kwargs: %s", name, kwargs)
+        lock_passwd_val = kwargs.get("lock_passwd", True)
+        LOG.error("DEBUG: create_user: lock_passwd=%s, has_existing_password=%s, ud_password_specified=%s", lock_passwd_val, has_existing_password, ud_password_specified)
+        if lock_passwd_val:
+            LOG.error("DEBUG: create_user: Locking password for %s", name)
             self.lock_passwd(name)
         elif has_existing_password or ud_password_specified:
             # 'lock_passwd: False' and either existing account already with
@@ -951,12 +965,13 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                     password_key,
                 )
 
-            LOG.error("DEBUGname2: %s kwargs: %s", name, kwargs)
             # Unlock the existing/new account
+            LOG.error("DEBUG: create_user: Unlocking password for %s", name)
             self.unlock_passwd(name)
         elif pre_existing_user:
             # Pre-existing user with no existing password and none
             # explicitly set in user-data.
+            LOG.error("DEBUG: create_user: Not unlocking blank password for existing user %s", name)
             log_with_downgradable_level(
                 logger=LOG,
                 version="24.3",
@@ -967,9 +982,9 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 " provided in user-data",
                 args=(name,),
             )
-            LOG.error("DEBUGname3: %s kwargs: %s", name, kwargs)
         else:
             # No password (whether blank or otherwise) explicitly set
+            LOG.error("DEBUG: create_user: Not unlocking password for user %s (no password explicitly set)", name)
             log_with_downgradable_level(
                 logger=LOG,
                 version="24.3",
@@ -979,15 +994,16 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 "'hashed_passwd' provided in user-data",
                 args=(name,),
             )
-            LOG.error("DEBUGname4: %s kwargs: %s", name, kwargs)
 
         # Configure doas access
         if "doas" in kwargs:
+            LOG.error("DEBUG: create_user: configuring doas for %s: %s", name, kwargs["doas"])
             if kwargs["doas"]:
                 self.write_doas_rules(name, kwargs["doas"])
 
         # Configure sudo access
         if "sudo" in kwargs:
+            LOG.error("DEBUG: create_user: configuring sudo for %s: %s", name, kwargs["sudo"])
             if kwargs["sudo"]:
                 self.write_sudo_rules(name, kwargs["sudo"])
             elif kwargs["sudo"] is False:
@@ -1000,6 +1016,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
 
         # Import SSH keys
         if "ssh_authorized_keys" in kwargs:
+            LOG.error("DEBUG: create_user: importing SSH keys for %s: %s", name, kwargs["ssh_authorized_keys"])
             # Try to handle this in a smart manner.
             keys = kwargs["ssh_authorized_keys"]
             if isinstance(keys, str):
@@ -1019,6 +1036,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                     keys = set(keys) or []
             ssh_util.setup_user_keys(set(keys), name)
         if "ssh_redirect_user" in kwargs:
+            LOG.error("DEBUG: create_user: configuring ssh_redirect_user to %s for %s", kwargs["ssh_redirect_user"], name)
             cloud_keys = kwargs.get("cloud_public_ssh_keys", [])
             if not cloud_keys:
                 LOG.warning(
