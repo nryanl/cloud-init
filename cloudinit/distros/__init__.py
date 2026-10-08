@@ -951,6 +951,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                     password_key,
                 )
 
+            LOG.error("DEBUGname2: %s kwargs: %s", name, kwargs)
             # Unlock the existing/new account
             self.unlock_passwd(name)
         elif pre_existing_user:
@@ -966,6 +967,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 " provided in user-data",
                 args=(name,),
             )
+            LOG.error("DEBUGname3: %s kwargs: %s", name, kwargs)
         else:
             # No password (whether blank or otherwise) explicitly set
             log_with_downgradable_level(
@@ -977,6 +979,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
                 "'hashed_passwd' provided in user-data",
                 args=(name,),
             )
+            LOG.error("DEBUGname4: %s kwargs: %s", name, kwargs)
 
         # Configure doas access
         if "doas" in kwargs:
