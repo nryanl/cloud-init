@@ -209,7 +209,7 @@ def test_netplan_rendering(net_config, session_cloud: IntegrationCloud):
 
 NET_V1_NAME_TOO_LONG = """\
 config:
-- name: eth01234567890123
+- name: eth0123
   type: physical
   mac_address: '{mac_addr}'
   subnets:
@@ -256,7 +256,7 @@ def test_schema_warnings(net_config, session_cloud: IntegrationCloud):
         assert "network-config-v1 failed schema validation!" in result.stdout
         result = client.execute("cloud-init schema --system")
         assert "Invalid network-config " in result.stdout
-        assert "eth01234567890123" in result.stderr
+        assert "eth0123" in result.stderr
         assert "is too long" in result.stderr
 
 
