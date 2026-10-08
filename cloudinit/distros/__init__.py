@@ -937,7 +937,7 @@ class Distro(persistence.CloudInitPickleMixin, metaclass=abc.ABCMeta):
         # Lock account unless lock_password is False in which case unlock
         # account as long as a password (blank or otherwise) was specified.
         if kwargs.get("lock_passwd", True):
-            LOG.error("name: %s kwargs: %s", name, kwargs)
+            LOG.error("DEBUGname: %s kwargs: %s", name, kwargs)
             self.lock_passwd(name)
         elif has_existing_password or ud_password_specified:
             # 'lock_passwd: False' and either existing account already with
