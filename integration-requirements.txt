@@ -10,5 +10,4 @@ pytest-timeout
 pytest-xdist
 
 packaging
-passlib
 coverage

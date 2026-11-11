@@ -10,7 +10,6 @@ import os
 import os.path
 import re
 import socket
-import warnings
 import xml.etree.ElementTree as ET  # nosec B405
 from enum import Enum
 from pathlib import Path
@@ -18,6 +17,7 @@ from time import monotonic, sleep, time
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import requests
+from passlib.hash import sha512_crypt
 
 from cloudinit import net, performance, sources, subp, util
 from cloudinit.config import cc_mounts
@@ -143,32 +143,12 @@ def find_dev_from_busdev(camcontrol_out: str, busdev: str) -> Optional[str]:
 
 
 def hash_password(password: str) -> str:
-    """Hash a password using SHA-512 crypt.
-
-    Try to use crypt, falling back to passlib.
-
-    If neither are available, raise ReportableErrorImportError.
+    """Hash a password using passlib's SHA-512 crypt implementation.
 
     :param password: plaintext password to hash.
     :return: The hashed password string.
-    :raises ReportableErrorImportError: If crypt and passlib are unavailable.
     """
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", category=DeprecationWarning)
-            import crypt  # pylint: disable=W4901
-
-        salt = crypt.mksalt(crypt.METHOD_SHA512)
-        return crypt.crypt(password, salt)
-    except (ImportError, AttributeError):
-        pass
-
-    try:
-        import passlib.hash
-
-        return passlib.hash.sha512_crypt.hash(password)
-    except ImportError as error:
-        raise errors.ReportableErrorImportError(error=error) from error
+    return sha512_crypt.hash(password)
 
 
 def normalize_mac_address(mac: str) -> str:

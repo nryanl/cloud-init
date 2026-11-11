@@ -1,23 +1,18 @@
 # This file is part of cloud-init. See LICENSE file for license information.
 # pylint: disable=attribute-defined-outside-init
 
-import builtins
 import copy
 import datetime
 import json
 import logging
 import os
 import stat
-import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-try:
-    import passlib.hash
-except ImportError:
-    passlib = None  # type: ignore
 import pytest
 import requests
+from passlib.hash import sha512_crypt
 
 from cloudinit import distros, dmi, helpers, subp, url_helper
 from cloudinit.atomic_helper import b64e, json_dumps
@@ -1851,14 +1846,7 @@ scbus-1 on xpt0 bus 0
 
         assert "ssh_pwauth" not in dsrc.cfg
 
-    @pytest.mark.skipif(passlib is None, reason="passlib not installed")
-    def test_password_given(self, get_ds, mocker):
-        # The crypt module has platform-specific behavior and the purpose of
-        # this test isn't to verify the differences between crypt and passlib,
-        # so hardcode passlib usage as crypt is deprecated.
-        mocker.patch.object(
-            dsaz, "hash_password", passlib.hash.sha512_crypt.hash
-        )
+    def test_password_given(self, get_ds):
         data = {
             "ovfcontent": construct_ovf_env(
                 username="myuser", password="mypass"
@@ -1877,9 +1865,7 @@ scbus-1 on xpt0 bus 0
         # passwd is crypt formatted string $id$salt$encrypted
         # encrypting plaintext with salt value of everything up to final '$'
         # should equal that after the '$'
-        assert passlib.hash.sha512_crypt.verify(
-            "mypass", defuser["hashed_passwd"]
-        )
+        assert sha512_crypt.verify("mypass", defuser["hashed_passwd"])
 
         assert dsrc.cfg["ssh_pwauth"] is True
 
@@ -6150,97 +6136,25 @@ class TestHasCustomDataFromImds:
 class TestHashPassword:
     """Tests for the hash_password function."""
 
-    def test_dependency_fallback(self):
-        """Ensure that crypt/passlib import failover gets exercised on all
-        Python versions
-        """
-        result = dsaz.hash_password("`")
-        assert result
+    @pytest.mark.parametrize("password", ["testpassword", "`", "pásswörd"])
+    def test_hash_password(self, password):
+        """Hash passwords using SHA-512 and verify them with passlib."""
+        result = dsaz.hash_password(password)
         assert result.startswith("$6$")
+        assert sha512_crypt.verify(password, result)
+        assert not sha512_crypt.verify("wrong-password", result)
 
-    def test_crypt_working(self):
-        """Test that hash_password uses crypt when available."""
-        mock_crypt = mock.MagicMock()
-        mock_crypt.METHOD_SHA512 = "sha512"
-        mock_crypt.mksalt.return_value = "$6$saltvalue"
-        mock_crypt.crypt.return_value = "$6$saltvalue$hashedpassword"
-
-        with mock.patch.dict("sys.modules", {"crypt": mock_crypt}):
-            result = dsaz.hash_password("testpassword")
-
-        mock_crypt.mksalt.assert_called_once_with("sha512")
-        mock_crypt.crypt.assert_called_once_with(
-            "testpassword", "$6$saltvalue"
+    def test_hash_password_uses_passlib(self, mocker):
+        """Pass the plaintext password to passlib and return its hash."""
+        m_hash = mocker.patch.object(
+            dsaz.sha512_crypt, "hash", return_value="$6$salt$hashedpassword"
         )
-        assert result == "$6$saltvalue$hashedpassword"
 
-    def test_crypt_not_installed_passlib_fallback(self):
-        """Test that hash_password falls back to passlib when missing crypt."""
-        real_import = builtins.__import__
-        passlib_available = True
-        try:
-            import passlib.hash as _passlib_hash
-        except ImportError:
-            passlib_available = False
+        assert dsaz.hash_password("testpassword") == "$6$salt$hashedpassword"
+        m_hash.assert_called_once_with("testpassword")
 
-        if passlib_available:
-            # passlib is installed; block crypt and let passlib work normally
-            def mock_import(name, *args, **kwargs):
-                if name == "crypt":
-                    raise ImportError("No module named 'crypt'")
-                return real_import(name, *args, **kwargs)
-
-            with mock.patch.object(
-                builtins, "__import__", side_effect=mock_import
-            ):
-                result = dsaz.hash_password("testpassword")
-
-            # Verify we got a valid SHA-512 hash from passlib
-            assert result.startswith("$6$")
-            assert _passlib_hash.sha512_crypt.verify("testpassword", result)
-        else:
-            # passlib is not installed; mock it to return a known hash
-            mock_passlib_hash = mock.MagicMock()
-            mock_passlib_hash.sha512_crypt.hash.return_value = (
-                "$6$mocksalt$mockedhash"
-            )
-
-            def mock_import(name, *args, **kwargs):
-                if name == "crypt":
-                    raise ImportError("No module named 'crypt'")
-                if name == "passlib.hash":
-                    mod = mock.MagicMock()
-                    mod.hash = mock_passlib_hash
-                    sys.modules["passlib"] = mod
-                    sys.modules["passlib.hash"] = mock_passlib_hash
-                    return mod
-                return real_import(name, *args, **kwargs)
-
-            with mock.patch.object(
-                builtins, "__import__", side_effect=mock_import
-            ):
-                result = dsaz.hash_password("testpassword")
-
-            assert result == "$6$mocksalt$mockedhash"
-            mock_passlib_hash.sha512_crypt.hash.assert_called_once_with(
-                "testpassword"
-            )
-
-    def test_crypt_and_passlib_unavailable_raises_error(self):
-        """Test that hash_password raises ReportableErrorImportError."""
-        real_import = builtins.__import__
-
-        def mock_import(name, *args, **kwargs):
-            if name == "crypt":
-                raise ImportError("No module named 'crypt'")
-            if name == "passlib.hash":
-                raise ImportError("No module named 'passlib'", name="passlib")
-            return real_import(name, *args, **kwargs)
-
-        with mock.patch.object(
-            builtins, "__import__", side_effect=mock_import
-        ):
-            with pytest.raises(errors.ReportableErrorImportError) as exc_info:
-                dsaz.hash_password("testpassword")
-
-            assert "passlib" in exc_info.value.reason
+    def test_hash_password_unique_salts(self):
+        """Hashing the same password twice generates different salts."""
+        assert dsaz.hash_password("testpassword") != dsaz.hash_password(
+            "testpassword"
+        )

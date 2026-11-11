@@ -14,7 +14,6 @@ pytest-xdist
 jsonschema
 responses
 packaging
-passlib
 pyfakefs
 
 # This one is currently used only by the CloudSigma and SmartOS datasources.

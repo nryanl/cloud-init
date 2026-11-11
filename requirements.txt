@@ -24,3 +24,10 @@ jsonpatch
 
 # For validating cloud-config sections per schema definitions
 jsonschema
+
+# For hashing passwords on Azure and BSD
+passlib
+
+# Backend for passlib's bcrypt hashing on BSD. bcrypt 5 is incompatible with
+# passlib 1.7.4's backend initialization.
+bcrypt<5
